@@ -14,9 +14,13 @@
 - [ ] With **Save and close selected tabs** checked, add to an existing collection. Verify confirmation names the collection, states the number of tabs to close, and describes known duplicates. Cancel and verify nothing changes; confirm and verify selected tabs close.
 - [ ] Open the chooser with no collections and verify its empty state. Press Escape or Cancel and verify it closes and returns focus to **Add to existing collection** without changing tabs or collections.
 - [ ] Check **Save and close selected tabs**. Verify the confirmation dialog appears; cancel once, then confirm and verify only selected tabs close after saving.
-- [ ] Restore a complete collection and verify a new window opens, with tabs in their saved order as Chrome permits and pinned tabs pinned.
-- [ ] Restore one saved tab and verify it opens in the current Chrome context.
+- [ ] Restore a complete collection with the primary **Restore in new window** button and verify a new regular window opens, with tabs in their saved order as Chrome permits and pinned tabs pinned.
+- [ ] Open **Restore options**, verify keyboard focus starts on the default destination, choose **Current window**, and verify tabs append without closing or rearranging existing tabs (except Chrome’s normal pinned-tab placement).
+- [ ] With **Allow in Incognito** enabled in the extension’s Chrome settings, verify **Incognito window** is enabled and opens a new Incognito window. With access disabled, verify it is disabled and the dialog explains how to enable it; do not expect the extension to request access.
+- [ ] Restore a collection containing only unsupported/invalid URLs and verify no empty window is opened and a useful error appears.
+- [ ] Restore one saved tab with both **Restore** and **Restore here**. Verify the original action remains functional and **Restore here** targets the current window.
 - [ ] Rename a collection and verify the new name persists after closing and reopening the popup.
 - [ ] Remove one saved tab, then delete a collection. Verify deletion requires confirmation and persists after reopening Chrome.
 - [ ] Save a `chrome://` tab if Chrome exposes it, then restore the collection. Verify valid tabs restore and an error explains skipped unsupported URLs.
 - [ ] Restart Chrome and verify saved collections remain available.
+- [ ] Recheck collection save, add-to-existing, delete, rename, tab/domain search, and save-and-close after using every restore destination.

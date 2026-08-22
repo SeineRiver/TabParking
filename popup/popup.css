@@ -5,9 +5,12 @@ button, input { font: inherit; }
 button { cursor: pointer; }
 .app { padding: 20px; }
 header { margin-bottom: 14px; }
+.header-row { align-items: center; display: flex; justify-content: space-between; }
 .eyebrow { color: #526cbb; font-size: 10px; font-weight: 800; letter-spacing: .11em; margin: 0 0 4px; }
 h1 { font-size: 22px; line-height: 1.15; letter-spacing: -.04em; margin: 0; }
 .subtitle { color: #687386; font-size: 13px; margin: 5px 0 0; }
+.header-icon-button { align-items: center; background: #fff; border: 1px solid #cbd3e1; border-radius: 7px; color: #365db9; display: inline-flex; font-size: 19px; height: 32px; justify-content: center; padding: 0; width: 32px; }
+.header-icon-button:hover, .header-icon-button:focus-visible { background: #edf2ff; outline: 2px solid #dce6ff; }
 h2 { font-size: 14px; margin: 0; }
 .panel, .collection-card { background: #fff; border: 1px solid #e3e7ef; border-radius: 12px; box-shadow: 0 2px 8px rgba(22, 37, 68, .04); }
 .panel { padding: 14px; }
@@ -38,13 +41,16 @@ input[type="search"]:focus { border-color: #456bc9; outline: 2px solid #dce6ff; 
 .tab-kind:not(:empty) + .pinned { margin-left: 0; }
 .pinned:empty { display: none; }
 .save-form { display: grid; gap: 8px; padding-top: 12px; }
+.save-actions { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; }
+.save-actions button { min-width: 0; }
 label { color: #435066; font-size: 12px; font-weight: 650; }
 input[type="text"] { border: 1px solid #cbd3e1; border-radius: 7px; padding: 8px 9px; }
 input[type="text"]:focus { border-color: #456bc9; outline: 2px solid #dce6ff; }
 .check-row { align-items: center; display: flex; font-weight: 500; gap: 7px; }
 .primary, .danger { background: #365fc3; border: 1px solid #365fc3; border-radius: 7px; color: #fff; font-weight: 700; padding: 9px 11px; }
 .primary:hover { background: #2d51aa; }
-.primary:disabled { cursor: wait; opacity: .6; }
+.primary:disabled { cursor: not-allowed; opacity: .6; }
+#save-button:disabled { cursor: wait; }
 .secondary { background: #fff; border: 1px solid #bfc9da; border-radius: 7px; color: #365db9; font-weight: 700; padding: 9px 11px; }
 .secondary:hover { background: #f4f7ff; }
 .collections { margin-top: 20px; }
@@ -55,9 +61,12 @@ input[type="text"]:focus { border-color: #456bc9; outline: 2px solid #dce6ff; }
 .collection-actions { display: flex; margin-left: auto; white-space: nowrap; }
 .collection-actions .delete { color: #b64042; }
 .restore-all { margin: 0 12px 10px; padding: 6px 8px; }
+.restore-options-button { margin: 0 0 10px 12px; padding: 6px 8px; }
 .saved-tabs { border-top: 1px solid #edf0f5; list-style: none; margin: 0; padding: 5px 8px; }
 .saved-tab { align-items: center; display: flex; gap: 7px; min-height: 28px; }
 .saved-tab .tab-name { flex: 1; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.saved-tab .icon-button { align-items: center; border-radius: 5px; display: inline-flex; font-size: 16px; height: 24px; justify-content: center; line-height: 1; padding: 0; width: 24px; }
+.saved-tab .icon-button:hover, .saved-tab .icon-button:focus-visible { background: #edf2ff; outline: none; }
 .saved-tab .remove { color: #a64e50; }
 .status { border-radius: 7px; color: #31533f; font-size: 12px; font-weight: 600; margin: 0 0 10px; min-height: 0; }
 .status:not(:empty) { background: #e7f4eb; padding: 8px 9px; }
@@ -73,7 +82,10 @@ dialog p { color: #5e697b; font-size: 13px; line-height: 1.4; }
 .collection-choice:has(input:focus-visible) { outline: 2px solid #dce6ff; }
 .choice-name { font-size: 12px; font-weight: 700; }
 .choice-meta { color: #798396; font-size: 11px; margin-left: auto; }
+.restore-destinations { display: grid; gap: 7px; margin-top: 12px; }
+.restore-destinations button { text-align: left; }
+.dialog-help { background: #f5f7fb; border-radius: 7px; font-size: 12px; margin: 12px 0 0; padding: 8px; }
 .dialog-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
-.dialog-actions button:not(.danger) { background: #fff; border: 1px solid #cfd6e2; border-radius: 7px; padding: 7px 10px; }
+.dialog-actions button:not(.danger):not(.primary) { background: #fff; border: 1px solid #cfd6e2; border-radius: 7px; padding: 7px 10px; }
 .dialog-actions .primary { background: #365fc3; border-color: #365fc3; color: #fff; }
 .dialog-actions .danger { background: #b63f43; border-color: #b63f43; padding: 7px 10px; }

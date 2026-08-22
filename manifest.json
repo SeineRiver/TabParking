@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Huy's Tab Parking",
   "description": "Save selected tabs locally and restore them whenever you need them.",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "permissions": ["tabs", "storage"],
   "action": {
     "default_title": "Huy's Tab Parking",

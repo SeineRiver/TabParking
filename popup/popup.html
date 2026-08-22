@@ -9,14 +9,16 @@
   <body>
     <main class="app">
       <header>
-        <p class="eyebrow">LOCAL TAB LIBRARY</p>
-        <h1>Huy's Tab Parking</h1>
+        <div class="header-row">
+          <div><p class="eyebrow">LOCAL TAB LIBRARY</p><h1>Huy's Tab Parking</h1></div>
+          <button id="collections-view-toggle" class="header-icon-button" type="button" aria-label="View parked collections" title="View parked collections"><span aria-hidden="true">☷</span></button>
+        </div>
         <p class="subtitle">Save a focused set of tabs for later.</p>
       </header>
 
       <p id="status" class="status" role="status" aria-live="polite"></p>
 
-      <section class="panel" aria-labelledby="open-tabs-heading">
+      <section id="tab-selection-view" class="panel" aria-labelledby="open-tabs-heading">
         <div class="section-heading">
           <div><h2 id="open-tabs-heading">Open tabs</h2><span id="tab-count"></span></div>
           <div class="text-actions">
@@ -24,8 +26,7 @@
             <button id="clear-selection" type="button">Clear</button>
           </div>
         </div>
-        <label class="search-label" for="tab-search">Quick search</label>
-        <input id="tab-search" type="search" placeholder="Search title, URL, or domain" autocomplete="off" />
+        <input id="tab-search" type="search" placeholder="Search title, URL, or domain" aria-label="Search title, URL, or domain" autocomplete="off" />
         <p id="selected-count" class="selected-count" aria-live="polite"></p>
         <section id="domain-groups-section" class="domain-groups" aria-labelledby="domain-groups-heading">
           <h3 id="domain-groups-heading">Select by domain</h3>
@@ -38,12 +39,14 @@
           <label for="collection-name">Collection name</label>
           <input id="collection-name" type="text" maxlength="80" placeholder="e.g. Weekend reading" required />
           <label class="check-row"><input id="close-after-save" type="checkbox" checked /> <span>Save and close selected tabs</span></label>
-          <button class="primary" id="save-button" type="submit">Save selected tabs</button>
-          <button class="secondary" id="add-existing-button" type="button">Add to existing collection</button>
+          <div class="save-actions">
+            <button class="primary" id="save-button" type="submit">Save selected tabs</button>
+            <button class="secondary" id="add-existing-button" type="button">Add to existing collection</button>
+          </div>
         </form>
       </section>
 
-      <section class="collections" aria-labelledby="collections-heading">
+      <section id="collections-view" class="collections" aria-labelledby="collections-heading" hidden>
         <div class="section-heading"><div><h2 id="collections-heading">Parked collections</h2><span id="collection-count"></span></div></div>
         <div id="collections-loading" class="loading">Loading collections…</div>
         <div id="collections-empty" class="empty" hidden>No collections yet. Select a few open tabs to park them here.</div>
@@ -69,6 +72,19 @@
         <div id="collection-chooser-no-results" class="empty" hidden>No matching collections.</div>
         <div id="collection-chooser-list" class="collection-chooser-list" role="radiogroup" aria-label="Choose a collection"></div>
         <div class="dialog-actions"><button id="add-dialog-cancel" value="cancel">Cancel</button><button id="add-dialog-confirm" class="primary" value="add" disabled>Add tabs</button></div>
+      </form>
+    </dialog>
+    <dialog id="restore-dialog" aria-labelledby="restore-dialog-title">
+      <form id="restore-destination-form" method="dialog">
+        <h2 id="restore-dialog-title">Restore collection</h2>
+        <p id="restore-dialog-summary"></p>
+        <div class="restore-destinations" aria-label="Restore destination">
+          <button id="restore-new-window" class="secondary" type="submit" value="new">New window</button>
+          <button id="restore-current-window" class="secondary" type="submit" value="current">Current window</button>
+          <button id="restore-incognito-window" class="secondary" type="submit" value="incognito" disabled hidden>Incognito window</button>
+        </div>
+        <p id="incognito-help" class="dialog-help" hidden>Enable ‘Allow in Incognito’ in this extension’s Chrome settings to use this option.</p>
+        <div class="dialog-actions"><button value="cancel">Cancel</button></div>
       </form>
     </dialog>
     <template id="tab-item-template">

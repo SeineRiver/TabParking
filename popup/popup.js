@@ -1,8 +1,8 @@
 import { addCollection, appendTabsToCollection, deleteCollection, getAppendSummary, getCollections, removeTabFromCollection, renameCollection } from "../modules/storage.js";
-import { closeTabs, getCurrentWindowTabs, restoreCollection, restoreOneTab, serializeTabs } from "../modules/tabs.js";
+import { closeTabs, getCurrentWindowTabs, restoreCollection, restoreOneTab, restoreOneTabInCurrentWindow, serializeTabs } from "../modules/tabs.js";
 import { filterTabs, groupTabsByDomain, normalizeHostname } from "../modules/tab-selection.js";
 
-const state = { tabs: [], collections: [], searchQuery: "", collectionSearchQuery: "", destinationId: null, chooserOpener: null };
+const state = { tabs: [], collections: [], searchQuery: "", collectionSearchQuery: "", destinationId: null, chooserOpener: null, restoreCollection: null, restoreOpener: null, activeView: "tabs" };
 const $ = (selector) => document.querySelector(selector);
 const openTabs = $("#open-tabs");
 const collectionsList = $("#collections-list");
@@ -11,6 +11,16 @@ const status = $("#status");
 function setStatus(message, isError = false) {
   status.textContent = message;
   status.classList.toggle("error", isError);
+}
+
+function renderActiveView() {
+  const showCollections = state.activeView === "collections";
+  $("#tab-selection-view").hidden = showCollections;
+  $("#collections-view").hidden = !showCollections;
+  const toggle = $("#collections-view-toggle");
+  toggle.setAttribute("aria-label", showCollections ? "Back to tab parking" : "View parked collections");
+  toggle.title = showCollections ? "Back to tab parking" : "View parked collections";
+  toggle.firstElementChild.textContent = showCollections ? "←" : "☷";
 }
 
 function escapeText(value) {
@@ -100,17 +110,19 @@ function renderCollections() {
   state.collections.forEach((collection) => {
     const card = document.createElement("article");
     card.className = "collection-card";
-    card.innerHTML = `<div class="collection-header"><div><h3 class="collection-name">${escapeText(collection.name)}</h3><p class="collection-meta">${formatDate(collection.savedAt)} · ${collection.tabs.length} tab${collection.tabs.length === 1 ? "" : "s"}</p></div><div class="collection-actions"><button class="rename" type="button" aria-label="Rename ${escapeText(collection.name)}">Rename</button><button class="delete" type="button" aria-label="Delete ${escapeText(collection.name)}">Delete</button></div></div><button class="primary restore-all" type="button">Restore in new window</button><ul class="saved-tabs"></ul>`;
+    card.innerHTML = `<div class="collection-header"><div><h3 class="collection-name">${escapeText(collection.name)}</h3><p class="collection-meta">${formatDate(collection.savedAt)} · ${collection.tabs.length} tab${collection.tabs.length === 1 ? "" : "s"}</p></div><div class="collection-actions"><button class="rename" type="button" aria-label="Rename ${escapeText(collection.name)}">Rename</button><button class="delete" type="button" aria-label="Delete ${escapeText(collection.name)}">Delete</button></div></div><button class="primary restore-all" type="button">Restore in new window</button><button class="secondary restore-options-button" type="button">Restore options</button><ul class="saved-tabs"></ul>`;
     card.querySelector(".rename").addEventListener("click", () => onRename(collection));
     card.querySelector(".delete").addEventListener("click", () => onDelete(collection));
     card.querySelector(".restore-all").addEventListener("click", () => onRestoreAll(collection));
+    card.querySelector(".restore-options-button").addEventListener("click", (event) => openRestoreChooser(collection, event.currentTarget));
     const list = card.querySelector(".saved-tabs");
     collection.tabs.slice().sort((a, b) => a.originalIndex - b.originalIndex).forEach((tab) => {
       const row = document.createElement("li");
       row.className = "saved-tab";
-      row.innerHTML = `<img class="favicon" alt="" /><span class="tab-name" title="${escapeText(tab.url)}">${escapeText(tab.title || tab.url || "Untitled tab")}</span><button class="restore" type="button" aria-label="Restore ${escapeText(tab.title || tab.url)}">Restore</button><button class="remove" type="button" aria-label="Remove ${escapeText(tab.title || tab.url)} from collection">Remove</button>`;
+      row.innerHTML = `<img class="favicon" alt="" /><span class="tab-name" title="${escapeText(tab.url)}">${escapeText(tab.title || tab.url || "Untitled tab")}</span><button class="icon-button restore" type="button" title="Restore" aria-label="Restore ${escapeText(tab.title || tab.url)}"><span aria-hidden="true">↗</span></button><button class="icon-button restore-current" type="button" title="Restore in current window" aria-label="Restore ${escapeText(tab.title || tab.url)} in current window"><span aria-hidden="true">↪</span></button><button class="icon-button remove" type="button" title="Remove from collection" aria-label="Remove ${escapeText(tab.title || tab.url)} from collection"><span aria-hidden="true">×</span></button>`;
       const icon = row.querySelector("img"); icon.src = tab.favIconUrl || ""; icon.addEventListener("error", faviconError);
       row.querySelector(".restore").addEventListener("click", () => onRestoreOne(tab));
+      row.querySelector(".restore-current").addEventListener("click", () => onRestoreOneInCurrentWindow(tab));
       row.querySelector(".remove").addEventListener("click", () => onRemoveTab(collection, tab));
       list.append(row);
     });
@@ -243,15 +255,62 @@ async function addToExistingCollection() {
   } catch (error) { setStatus(`Could not add tabs: ${error.message}`, true); }
 }
 
-async function onRestoreAll(collection) {
-  setStatus("Restoring collection…");
-  const result = await restoreCollection(collection.tabs);
-  setStatus(result.skipped ? `Restored ${result.restored}; skipped ${result.skipped} unsupported or invalid URL${result.skipped === 1 ? "" : "s"}.` : `Restored ${result.restored} tabs in a new window.` , result.skipped > 0);
+function destinationLabel(destination) {
+  if (destination === "current") return "the current window";
+  if (destination === "incognito") return "an incognito window";
+  return "a new window";
+}
+
+function reportRestoreResult(result) {
+  if (result.error) {
+    setStatus(`Could not restore collection: ${result.error}`, true);
+    return;
+  }
+  if (!result.restored) {
+    setStatus("No restorable tabs were found. Unsupported or invalid URLs were skipped.", true);
+    return;
+  }
+  const message = `Restored ${result.restored} tab${result.restored === 1 ? "" : "s"} in ${destinationLabel(result.destination)}.`;
+  setStatus(result.skipped ? `${message} Skipped ${result.skipped} unsupported or invalid URL${result.skipped === 1 ? "" : "s"}.` : message, result.skipped > 0);
+}
+
+async function onRestoreAll(collection, destination = "new") {
+  setStatus(`Restoring collection in ${destinationLabel(destination)}…`);
+  try {
+    const result = await restoreCollection(collection.tabs, destination);
+    reportRestoreResult(result);
+  } catch (error) {
+    setStatus(`Could not restore collection: ${error.message}`, true);
+  }
+}
+
+async function openRestoreChooser(collection, opener) {
+  let incognitoAllowed = false;
+  try {
+    incognitoAllowed = await chrome.extension.isAllowedIncognitoAccess();
+  } catch {
+    // Treat an unavailable Chrome setting as disabled rather than attempting an incognito window.
+  }
+  state.restoreCollection = collection;
+  state.restoreOpener = opener;
+  $("#restore-dialog-title").textContent = `Restore “${collection.name}”`;
+  $("#restore-dialog-summary").textContent = `${collection.tabs.length} saved tab${collection.tabs.length === 1 ? "" : "s"}. New window is the default restore option.`;
+  const incognitoButton = $("#restore-incognito-window");
+  incognitoButton.hidden = false;
+  incognitoButton.disabled = !incognitoAllowed;
+  $("#incognito-help").hidden = incognitoAllowed;
+  $("#restore-dialog").showModal();
+  $("#restore-new-window").focus();
 }
 
 async function onRestoreOne(tab) {
   const restored = await restoreOneTab(tab);
   setStatus(restored ? "Tab restored." : "This URL cannot be restored by Chrome.", !restored);
+}
+
+async function onRestoreOneInCurrentWindow(tab) {
+  const restored = await restoreOneTabInCurrentWindow(tab);
+  setStatus(restored ? "Tab restored in the current window." : "This URL cannot be restored in the current window.", !restored);
 }
 
 async function onRename(collection) {
@@ -289,6 +348,10 @@ $("#domain-groups").addEventListener("change", (event) => {
 $("#tab-search").addEventListener("input", (event) => { state.searchQuery = event.target.value; renderOpenTabs(); });
 $("#select-all").addEventListener("click", () => { visibleTabs().forEach((tab) => { tab.selected = true; }); renderOpenTabs(); });
 $("#clear-selection").addEventListener("click", () => { state.tabs.forEach((tab) => { tab.selected = false; }); renderOpenTabs(); });
+$("#collections-view-toggle").addEventListener("click", () => {
+  state.activeView = state.activeView === "tabs" ? "collections" : "tabs";
+  renderActiveView();
+});
 $("#save-form").addEventListener("submit", onSave);
 $("#add-existing-button").addEventListener("click", openAddToExistingChooser);
 $("#collection-search").addEventListener("input", (event) => {
@@ -309,12 +372,28 @@ $("#add-dialog").addEventListener("close", () => {
   state.chooserOpener?.focus();
   state.chooserOpener = null;
 });
+$("#restore-destination-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const destination = event.submitter?.value;
+  if (destination === "cancel" || !state.restoreCollection) {
+    $("#restore-dialog").close("cancel");
+    return;
+  }
+  const collection = state.restoreCollection;
+  $("#restore-dialog").close(destination);
+  onRestoreAll(collection, destination);
+});
+$("#restore-dialog").addEventListener("close", () => {
+  state.restoreOpener?.focus();
+  state.restoreOpener = null;
+  state.restoreCollection = null;
+});
 
 async function init() {
   try {
     [state.tabs, state.collections] = await Promise.all([getCurrentWindowTabs(), getCollections()]);
     state.tabs.forEach((tab) => { tab.selected = false; });
-    renderOpenTabs(); renderCollections();
+    renderOpenTabs(); renderCollections(); renderActiveView();
   } catch (error) { setStatus(`Could not load extension data: ${error.message}`, true); }
 }
 init();
