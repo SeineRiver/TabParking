@@ -37,7 +37,7 @@
         <div id="tabs-no-results" class="empty" hidden>No matching tabs. Try another title, URL, or domain.</div>
         <form id="save-form" class="save-form">
           <label for="collection-name">Collection name</label>
-          <input id="collection-name" type="text" maxlength="80" placeholder="e.g. Weekend reading" required />
+          <input id="collection-name" type="text" maxlength="48" placeholder="e.g. Weekend reading" required />
           <label class="check-row"><input id="close-after-save" type="checkbox" checked /> <span>Save and close selected tabs</span></label>
           <div class="save-actions">
             <button class="primary" id="save-button" type="submit">Save selected tabs</button>
@@ -48,8 +48,12 @@
 
       <section id="collections-view" class="collections" aria-labelledby="collections-heading" hidden>
         <div class="section-heading"><div><h2 id="collections-heading">Parked collections</h2><span id="collection-count"></span></div></div>
+        <input id="collections-search" type="search" placeholder="Search collections, tags, or tabs" aria-label="Search collections, tags, or saved tabs" autocomplete="off" />
+        <div id="collection-filters" class="collection-filters" role="group" aria-label="Filter collections"></div>
+        <p id="collection-results" class="collection-results" aria-live="polite"></p>
         <div id="collections-loading" class="loading">Loading collections…</div>
         <div id="collections-empty" class="empty" hidden>No collections yet. Select a few open tabs to park them here.</div>
+        <div id="collections-no-results" class="empty" hidden>No collections match this search or filter.</div>
         <div id="collections-list"></div>
       </section>
     </main>
@@ -72,19 +76,6 @@
         <div id="collection-chooser-no-results" class="empty" hidden>No matching collections.</div>
         <div id="collection-chooser-list" class="collection-chooser-list" role="radiogroup" aria-label="Choose a collection"></div>
         <div class="dialog-actions"><button id="add-dialog-cancel" value="cancel">Cancel</button><button id="add-dialog-confirm" class="primary" value="add" disabled>Add tabs</button></div>
-      </form>
-    </dialog>
-    <dialog id="restore-dialog" aria-labelledby="restore-dialog-title">
-      <form id="restore-destination-form" method="dialog">
-        <h2 id="restore-dialog-title">Restore collection</h2>
-        <p id="restore-dialog-summary"></p>
-        <div class="restore-destinations" aria-label="Restore destination">
-          <button id="restore-new-window" class="secondary" type="submit" value="new">New window</button>
-          <button id="restore-current-window" class="secondary" type="submit" value="current">Current window</button>
-          <button id="restore-incognito-window" class="secondary" type="submit" value="incognito" disabled hidden>Incognito window</button>
-        </div>
-        <p id="incognito-help" class="dialog-help" hidden>Enable ‘Allow in Incognito’ in this extension’s Chrome settings to use this option.</p>
-        <div class="dialog-actions"><button value="cancel">Cancel</button></div>
       </form>
     </dialog>
     <template id="tab-item-template">

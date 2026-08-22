@@ -54,14 +54,29 @@ input[type="text"]:focus { border-color: #456bc9; outline: 2px solid #dce6ff; }
 .secondary { background: #fff; border: 1px solid #bfc9da; border-radius: 7px; color: #365db9; font-weight: 700; padding: 9px 11px; }
 .secondary:hover { background: #f4f7ff; }
 .collections { margin-top: 20px; }
+.collection-filters { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.collection-filter { background: #fff; border: 1px solid #cbd3e1; border-radius: 999px; color: #536178; font-size: 11px; font-weight: 700; padding: 5px 8px; }
+.collection-filter[aria-pressed="true"] { background: #e8efff; border-color: #7290d9; color: #274eaa; }
+.collection-results { color: #69758a; font-size: 11px; margin: 8px 0 0; }
 .collection-card { margin-top: 9px; overflow: hidden; }
 .collection-header { align-items: flex-start; display: flex; gap: 7px; padding: 12px 12px 9px; }
-.collection-name { font-size: 13px; font-weight: 750; margin: 0; overflow-wrap: anywhere; }
+.collection-heading { flex: 1; min-width: 0; }
+.collection-title-row { align-items: center; display: flex; gap: 7px; min-width: 0; }
+.collection-name { flex: 1; font-size: 13px; font-weight: 750; margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .collection-meta { color: #798396; font-size: 11px; margin: 3px 0 0; }
-.collection-actions { display: flex; margin-left: auto; white-space: nowrap; }
+.collection-actions { display: flex; flex-wrap: wrap; gap: 2px; justify-content: flex-end; margin-left: auto; max-width: 108px; }
+.collection-name-actions { display: flex; flex: 0 0 auto; gap: 2px; }
 .collection-actions .delete { color: #b64042; }
-.restore-all { margin: 0 12px 10px; padding: 6px 8px; }
-.restore-options-button { margin: 0 0 10px 12px; padding: 6px 8px; }
+.collection-name-actions .delete { color: #b64042; }
+.collection-actions .collection-icon, .collection-name-actions .collection-icon { align-items: center; background: none; border: 0; border-radius: 5px; color: #365db9; display: inline-flex; font-size: 15px; height: 25px; justify-content: center; padding: 0; width: 25px; }
+.collection-actions .collection-icon[aria-pressed="true"] { background: #fff3cf; color: #966a00; }
+.collection-actions .pin[aria-pressed="true"] { background: #e8efff; color: #274eaa; }
+.collection-actions .pin[aria-pressed="false"] { filter: grayscale(1); opacity: .42; }
+.collection-actions .collection-icon:hover, .collection-actions .collection-icon:focus-visible, .collection-name-actions .collection-icon:hover, .collection-name-actions .collection-icon:focus-visible { background: #edf2ff; outline: 2px solid #dce6ff; }
+.collection-tags { align-items: center; display: flex; flex-wrap: wrap; gap: 5px; padding: 0 12px 10px; }
+.tag-chip { align-items: center; background: #eef2fa; border-radius: 999px; color: #485875; display: inline-flex; font-size: 11px; gap: 3px; padding: 3px 4px 3px 8px; }
+.tag-chip button { background: none; border: 0; border-radius: 50%; color: #596985; font-size: 14px; height: 16px; line-height: 1; padding: 0; width: 16px; }
+.tag-chip button:hover, .tag-chip button:focus-visible { background: #d9e3f8; outline: 1px solid #7290d9; }
 .saved-tabs { border-top: 1px solid #edf0f5; list-style: none; margin: 0; padding: 5px 8px; }
 .saved-tab { align-items: center; display: flex; gap: 7px; min-height: 28px; }
 .saved-tab .tab-name { flex: 1; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -82,9 +97,6 @@ dialog p { color: #5e697b; font-size: 13px; line-height: 1.4; }
 .collection-choice:has(input:focus-visible) { outline: 2px solid #dce6ff; }
 .choice-name { font-size: 12px; font-weight: 700; }
 .choice-meta { color: #798396; font-size: 11px; margin-left: auto; }
-.restore-destinations { display: grid; gap: 7px; margin-top: 12px; }
-.restore-destinations button { text-align: left; }
-.dialog-help { background: #f5f7fb; border-radius: 7px; font-size: 12px; margin: 12px 0 0; padding: 8px; }
 .dialog-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
 .dialog-actions button:not(.danger):not(.primary) { background: #fff; border: 1px solid #cfd6e2; border-radius: 7px; padding: 7px 10px; }
 .dialog-actions .primary { background: #365fc3; border-color: #365fc3; color: #fff; }

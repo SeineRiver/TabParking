@@ -65,13 +65,12 @@ export async function restoreCollection(tabs, destination = "new") {
     return { restored, skipped: orderedTabs.length - restored, destination };
   }
 
-  const incognito = destination === "incognito";
   let windowId;
   let windowCreationFailed = false;
   for (const tab of restorable) {
     try {
       if (!windowId) {
-        const newWindow = await chrome.windows.create({ url: tab.url, focused: true, incognito });
+        const newWindow = await chrome.windows.create({ url: tab.url, focused: true });
         windowId = newWindow.id;
         const firstTab = newWindow.tabs?.[0];
         if (firstTab && tab.pinned) await chrome.tabs.update(firstTab.id, { pinned: true });

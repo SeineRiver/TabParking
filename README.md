@@ -18,9 +18,6 @@ No build step or dependency install is required. After editing source files, cli
 
 The extension has no network calls, analytics, accounts, or cloud sync.
 
-## Incognito restore
-
-The restore menu shows an **Incognito window** destination only when Chrome allows this extension in Incognito. To enable it, open `chrome://extensions`, select **Details** for Huy's Tab Parking, and turn on **Allow in Incognito**. This is a Chrome-controlled setting; the extension does not request or bypass it, and it does not save tabs from Incognito windows.
 
 ## Testing
 

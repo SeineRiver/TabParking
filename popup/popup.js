@@ -1,8 +1,9 @@
-import { addCollection, appendTabsToCollection, deleteCollection, getAppendSummary, getCollections, removeTabFromCollection, renameCollection } from "../modules/storage.js";
+import { addCollection, appendTabsToCollection, deleteCollection, getAppendSummary, getCollections, removeTabFromCollection, renameCollection, toggleCollectionFavorite, toggleCollectionPin, updateCollectionTags } from "../modules/storage.js";
 import { closeTabs, getCurrentWindowTabs, restoreCollection, restoreOneTab, restoreOneTabInCurrentWindow, serializeTabs } from "../modules/tabs.js";
 import { filterTabs, groupTabsByDomain, normalizeHostname } from "../modules/tab-selection.js";
+import { getTagOptions, matchesCollection, sortCollections } from "../modules/collections.js";
 
-const state = { tabs: [], collections: [], searchQuery: "", collectionSearchQuery: "", destinationId: null, chooserOpener: null, restoreCollection: null, restoreOpener: null, activeView: "tabs" };
+const state = { tabs: [], collections: [], searchQuery: "", collectionSearchQuery: "", collectionsSearchQuery: "", collectionFilter: { type: "all", tag: "" }, destinationId: null, chooserOpener: null, activeView: "tabs" };
 const $ = (selector) => document.querySelector(selector);
 const openTabs = $("#open-tabs");
 const collectionsList = $("#collections-list");
@@ -102,19 +103,85 @@ function formatDate(isoDate) {
   return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(isoDate));
 }
 
+function filteredCollections() {
+  const { type, tag } = state.collectionFilter;
+  return sortCollections(state.collections.filter((collection) => {
+    const matchesFilter = type === "all"
+      || (type === "pinned" && collection.isPinned)
+      || (type === "favorites" && collection.isFavorite)
+      || (type === "tag" && collection.tags.some((item) => item.toLowerCase() === tag.toLowerCase()));
+    return matchesFilter && matchesCollection(collection, state.collectionsSearchQuery);
+  }));
+}
+
+function renderCollectionFilters() {
+  const container = $("#collection-filters");
+  container.replaceChildren();
+  const options = [
+    { label: "All", type: "all" },
+    { label: "Pinned", type: "pinned" },
+    { label: "Favorites", type: "favorites" },
+    ...getTagOptions(state.collections).map((tag) => ({ label: tag, type: "tag", tag })),
+  ];
+  options.forEach((option) => {
+    const button = document.createElement("button");
+    const selected = state.collectionFilter.type === option.type && (option.type !== "tag" || state.collectionFilter.tag.toLowerCase() === option.tag.toLowerCase());
+    button.type = "button";
+    button.className = "collection-filter";
+    button.dataset.type = option.type;
+    if (option.tag) button.dataset.tag = option.tag;
+    button.setAttribute("aria-pressed", String(selected));
+    button.textContent = option.label;
+    container.append(button);
+  });
+}
+
+function renderCollectionTags(collection, container) {
+  if (!collection.tags.length) {
+    container.hidden = true;
+    return;
+  }
+  collection.tags.forEach((tag) => {
+    const chip = document.createElement("span");
+    chip.className = "tag-chip";
+    const text = document.createElement("span");
+    text.textContent = tag;
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.textContent = "×";
+    remove.title = `Remove ${tag}`;
+    remove.setAttribute("aria-label", `Remove tag ${tag} from ${collection.name}`);
+    remove.addEventListener("click", () => onRemoveTag(collection, tag));
+    chip.append(text, remove);
+    container.append(chip);
+  });
+}
+
 function renderCollections() {
+  if (state.collectionFilter.type === "tag" && !getTagOptions(state.collections).some((tag) => tag.toLowerCase() === state.collectionFilter.tag.toLowerCase())) {
+    state.collectionFilter = { type: "all", tag: "" };
+  }
+  const collections = filteredCollections();
   $("#collections-loading").hidden = true;
   $("#collection-count").textContent = `${state.collections.length} saved`;
+  $("#collection-results").textContent = state.collections.length ? `${collections.length} matching collection${collections.length === 1 ? "" : "s"}` : "";
   $("#collections-empty").hidden = state.collections.length !== 0;
+  $("#collections-no-results").hidden = state.collections.length === 0 || collections.length !== 0;
   collectionsList.replaceChildren();
-  state.collections.forEach((collection) => {
+  renderCollectionFilters();
+  collections.forEach((collection) => {
     const card = document.createElement("article");
     card.className = "collection-card";
-    card.innerHTML = `<div class="collection-header"><div><h3 class="collection-name">${escapeText(collection.name)}</h3><p class="collection-meta">${formatDate(collection.savedAt)} · ${collection.tabs.length} tab${collection.tabs.length === 1 ? "" : "s"}</p></div><div class="collection-actions"><button class="rename" type="button" aria-label="Rename ${escapeText(collection.name)}">Rename</button><button class="delete" type="button" aria-label="Delete ${escapeText(collection.name)}">Delete</button></div></div><button class="primary restore-all" type="button">Restore in new window</button><button class="secondary restore-options-button" type="button">Restore options</button><ul class="saved-tabs"></ul>`;
+    const favoriteLabel = collection.isFavorite ? "Remove from favorites" : "Add to favorites";
+    const pinLabel = collection.isPinned ? "Unpin collection" : "Pin collection";
+    card.innerHTML = `<div class="collection-header"><div class="collection-heading"><div class="collection-title-row"><h3 class="collection-name" title="${escapeText(collection.name)}">${escapeText(collection.name)}</h3><div class="collection-name-actions"><button class="collection-icon rename" type="button" title="Rename collection" aria-label="Rename ${escapeText(collection.name)}">✎</button><button class="collection-icon delete" type="button" title="Delete collection" aria-label="Delete ${escapeText(collection.name)}">×</button></div></div><p class="collection-meta">${formatDate(collection.savedAt)} · ${collection.tabs.length} tab${collection.tabs.length === 1 ? "" : "s"}</p></div><div class="collection-actions"><button class="collection-icon pin" type="button" title="${pinLabel}" aria-label="${pinLabel}: ${escapeText(collection.name)}" aria-pressed="${collection.isPinned}">📌</button><button class="collection-icon favorite" type="button" title="${favoriteLabel}" aria-label="${favoriteLabel}: ${escapeText(collection.name)}" aria-pressed="${collection.isFavorite}">${collection.isFavorite ? "★" : "☆"}</button><button class="collection-icon restore-all" type="button" title="Restore in new window" aria-label="Restore ${escapeText(collection.name)} in a new window">↗</button><button class="collection-icon restore-current" type="button" title="Restore in current window" aria-label="Restore ${escapeText(collection.name)} in the current window">↪</button></div></div><div class="collection-tags" aria-label="Tags for ${escapeText(collection.name)}"></div><ul class="saved-tabs"></ul>`;
+    renderCollectionTags(collection, card.querySelector(".collection-tags"));
     card.querySelector(".rename").addEventListener("click", () => onRename(collection));
     card.querySelector(".delete").addEventListener("click", () => onDelete(collection));
+    card.querySelector(".favorite").addEventListener("click", () => onToggleFavorite(collection));
+    card.querySelector(".pin").addEventListener("click", () => onTogglePin(collection));
     card.querySelector(".restore-all").addEventListener("click", () => onRestoreAll(collection));
-    card.querySelector(".restore-options-button").addEventListener("click", (event) => openRestoreChooser(collection, event.currentTarget));
+    card.querySelector(".restore-current").addEventListener("click", () => onRestoreAll(collection, "current"));
     const list = card.querySelector(".saved-tabs");
     collection.tabs.slice().sort((a, b) => a.originalIndex - b.originalIndex).forEach((tab) => {
       const row = document.createElement("li");
@@ -257,7 +324,6 @@ async function addToExistingCollection() {
 
 function destinationLabel(destination) {
   if (destination === "current") return "the current window";
-  if (destination === "incognito") return "an incognito window";
   return "a new window";
 }
 
@@ -284,25 +350,6 @@ async function onRestoreAll(collection, destination = "new") {
   }
 }
 
-async function openRestoreChooser(collection, opener) {
-  let incognitoAllowed = false;
-  try {
-    incognitoAllowed = await chrome.extension.isAllowedIncognitoAccess();
-  } catch {
-    // Treat an unavailable Chrome setting as disabled rather than attempting an incognito window.
-  }
-  state.restoreCollection = collection;
-  state.restoreOpener = opener;
-  $("#restore-dialog-title").textContent = `Restore “${collection.name}”`;
-  $("#restore-dialog-summary").textContent = `${collection.tabs.length} saved tab${collection.tabs.length === 1 ? "" : "s"}. New window is the default restore option.`;
-  const incognitoButton = $("#restore-incognito-window");
-  incognitoButton.hidden = false;
-  incognitoButton.disabled = !incognitoAllowed;
-  $("#incognito-help").hidden = incognitoAllowed;
-  $("#restore-dialog").showModal();
-  $("#restore-new-window").focus();
-}
-
 async function onRestoreOne(tab) {
   const restored = await restoreOneTab(tab);
   setStatus(restored ? "Tab restored." : "This URL cannot be restored by Chrome.", !restored);
@@ -314,7 +361,7 @@ async function onRestoreOneInCurrentWindow(tab) {
 }
 
 async function onRename(collection) {
-  const name = window.prompt("New collection name:", collection.name)?.trim();
+  const name = window.prompt("New collection name (max 48 characters):", collection.name)?.trim();
   if (!name) return;
   try { await renameCollection(collection.id, name); await refreshCollections(); setStatus("Collection renamed."); }
   catch (error) { setStatus(error.message, true); }
@@ -328,6 +375,30 @@ async function onDelete(collection) {
 async function onRemoveTab(collection, tab) {
   const remaining = await removeTabFromCollection(collection.id, tab.id);
   await refreshCollections(); setStatus(remaining ? "Tab removed from collection." : "Tab removed. The collection is now empty.");
+}
+
+async function onRemoveTag(collection, tag) {
+  try {
+    await updateCollectionTags(collection.id, collection.tags.filter((item) => item.toLowerCase() !== tag.toLowerCase()));
+    await refreshCollections();
+    setStatus(`Removed tag “${tag}”.`);
+  } catch (error) { setStatus(`Could not remove tag: ${error.message}`, true); }
+}
+
+async function onToggleFavorite(collection) {
+  try {
+    const updated = await toggleCollectionFavorite(collection.id);
+    await refreshCollections();
+    setStatus(updated.isFavorite ? `Added “${collection.name}” to favorites.` : `Removed “${collection.name}” from favorites.`);
+  } catch (error) { setStatus(`Could not update favorite: ${error.message}`, true); }
+}
+
+async function onTogglePin(collection) {
+  try {
+    const updated = await toggleCollectionPin(collection.id);
+    await refreshCollections();
+    setStatus(updated.isPinned ? `Pinned “${collection.name}”.` : `Unpinned “${collection.name}”.`);
+  } catch (error) { setStatus(`Could not update pin: ${error.message}`, true); }
 }
 
 openTabs.addEventListener("change", (event) => {
@@ -352,6 +423,16 @@ $("#collections-view-toggle").addEventListener("click", () => {
   state.activeView = state.activeView === "tabs" ? "collections" : "tabs";
   renderActiveView();
 });
+$("#collections-search").addEventListener("input", (event) => {
+  state.collectionsSearchQuery = event.target.value;
+  renderCollections();
+});
+$("#collection-filters").addEventListener("click", (event) => {
+  const button = event.target.closest(".collection-filter");
+  if (!button) return;
+  state.collectionFilter = { type: button.dataset.type, tag: button.dataset.tag || "" };
+  renderCollections();
+});
 $("#save-form").addEventListener("submit", onSave);
 $("#add-existing-button").addEventListener("click", openAddToExistingChooser);
 $("#collection-search").addEventListener("input", (event) => {
@@ -372,23 +453,6 @@ $("#add-dialog").addEventListener("close", () => {
   state.chooserOpener?.focus();
   state.chooserOpener = null;
 });
-$("#restore-destination-form").addEventListener("submit", (event) => {
-  event.preventDefault();
-  const destination = event.submitter?.value;
-  if (destination === "cancel" || !state.restoreCollection) {
-    $("#restore-dialog").close("cancel");
-    return;
-  }
-  const collection = state.restoreCollection;
-  $("#restore-dialog").close(destination);
-  onRestoreAll(collection, destination);
-});
-$("#restore-dialog").addEventListener("close", () => {
-  state.restoreOpener?.focus();
-  state.restoreOpener = null;
-  state.restoreCollection = null;
-});
-
 async function init() {
   try {
     [state.tabs, state.collections] = await Promise.all([getCurrentWindowTabs(), getCollections()]);

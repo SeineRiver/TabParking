@@ -1,9 +1,20 @@
+import { normalizeTags, withCollectionDefaults } from "./collections.js";
+
 const STORAGE_KEY = "tabParkingCollections";
+export const MAX_COLLECTION_NAME_LENGTH = 48;
+
+function validateCollectionName(name) {
+  const normalizedName = name.trim();
+  if (normalizedName.length > MAX_COLLECTION_NAME_LENGTH) {
+    throw new Error(`Collection names can be at most ${MAX_COLLECTION_NAME_LENGTH} characters.`);
+  }
+  return normalizedName;
+}
 
 export async function getCollections() {
   const stored = await chrome.storage.local.get(STORAGE_KEY);
   const collections = stored[STORAGE_KEY];
-  return Array.isArray(collections) ? collections : [];
+  return Array.isArray(collections) ? collections.map(withCollectionDefaults) : [];
 }
 
 async function saveCollections(collections) {
@@ -15,9 +26,13 @@ export async function addCollection({ name, tabs }) {
   const timestamp = new Date().toISOString();
   const collection = {
     id: crypto.randomUUID(),
-    name: name.trim(),
+    name: validateCollectionName(name),
     savedAt: timestamp,
     updatedAt: timestamp,
+    tags: [],
+    isFavorite: false,
+    isPinned: false,
+    pinnedAt: null,
     tabs,
   };
   collections.unshift(collection);
@@ -69,8 +84,36 @@ export async function renameCollection(id, name) {
   const collections = await getCollections();
   const collection = collections.find((item) => item.id === id);
   if (!collection) throw new Error("That collection no longer exists.");
-  collection.name = name.trim();
+  collection.name = validateCollectionName(name);
   await saveCollections(collections);
+}
+
+async function updateCollection(id, update) {
+  const collections = await getCollections();
+  const collection = collections.find((item) => item.id === id);
+  if (!collection) throw new Error("That collection no longer exists.");
+  Object.assign(collection, update, { updatedAt: new Date().toISOString() });
+  await saveCollections(collections);
+  return collection;
+}
+
+export async function updateCollectionTags(id, tags) {
+  return updateCollection(id, { tags: normalizeTags(tags) });
+}
+
+export async function toggleCollectionFavorite(id) {
+  const collections = await getCollections();
+  const collection = collections.find((item) => item.id === id);
+  if (!collection) throw new Error("That collection no longer exists.");
+  return updateCollection(id, { isFavorite: !collection.isFavorite });
+}
+
+export async function toggleCollectionPin(id) {
+  const collections = await getCollections();
+  const collection = collections.find((item) => item.id === id);
+  if (!collection) throw new Error("That collection no longer exists.");
+  const isPinned = !collection.isPinned;
+  return updateCollection(id, { isPinned, pinnedAt: isPinned ? new Date().toISOString() : null });
 }
 
 export async function deleteCollection(id) {
