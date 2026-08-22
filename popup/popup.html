@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Huy's Tab Parking</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header>
+        <p class="eyebrow">LOCAL TAB LIBRARY</p>
+        <h1>Huy's Tab Parking</h1>
+        <p class="subtitle">Save a focused set of tabs for later.</p>
+      </header>
+
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+
+      <section class="panel" aria-labelledby="open-tabs-heading">
+        <div class="section-heading">
+          <div><h2 id="open-tabs-heading">Open tabs</h2><span id="tab-count"></span></div>
+          <div class="text-actions">
+            <button id="select-all" type="button">Select all</button>
+            <button id="clear-selection" type="button">Clear</button>
+          </div>
+        </div>
+        <label class="search-label" for="tab-search">Quick search</label>
+        <input id="tab-search" type="search" placeholder="Search title, URL, or domain" autocomplete="off" />
+        <p id="selected-count" class="selected-count" aria-live="polite"></p>
+        <section id="domain-groups-section" class="domain-groups" aria-labelledby="domain-groups-heading">
+          <h3 id="domain-groups-heading">Select by domain</h3>
+          <div id="domain-groups" aria-label="Domain groups"></div>
+        </section>
+        <div id="tabs-loading" class="loading">Loading tabs…</div>
+        <ul id="open-tabs" class="tab-list" aria-label="Open tabs"></ul>
+        <div id="tabs-no-results" class="empty" hidden>No matching tabs. Try another title, URL, or domain.</div>
+        <form id="save-form" class="save-form">
+          <label for="collection-name">Collection name</label>
+          <input id="collection-name" type="text" maxlength="80" placeholder="e.g. Weekend reading" required />
+          <label class="check-row"><input id="close-after-save" type="checkbox" checked /> <span>Save and close selected tabs</span></label>
+          <button class="primary" id="save-button" type="submit">Save selected tabs</button>
+        </form>
+      </section>
+
+      <section class="collections" aria-labelledby="collections-heading">
+        <div class="section-heading"><div><h2 id="collections-heading">Parked collections</h2><span id="collection-count"></span></div></div>
+        <div id="collections-loading" class="loading">Loading collections…</div>
+        <div id="collections-empty" class="empty" hidden>No collections yet. Select a few open tabs to park them here.</div>
+        <div id="collections-list"></div>
+      </section>
+    </main>
+    <dialog id="confirm-dialog" aria-labelledby="dialog-title">
+      <form method="dialog">
+        <h2 id="dialog-title">Please confirm</h2>
+        <p id="dialog-message"></p>
+        <div class="dialog-actions"><button value="cancel">Cancel</button><button id="dialog-confirm" class="danger" value="confirm">Confirm</button></div>
+      </form>
+    </dialog>
+    <template id="tab-item-template">
+      <li class="tab-item"><input class="tab-checkbox" type="checkbox" /><img class="favicon" alt="" /><span class="tab-title"></span><span class="tab-kind"></span><span class="pinned" title="Pinned tab" aria-label="Pinned tab">⌖</span></li>
+    </template>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>
