@@ -1,8 +1,8 @@
-import { addCollection, deleteCollection, getCollections, removeTabFromCollection, renameCollection } from "../modules/storage.js";
+import { addCollection, appendTabsToCollection, deleteCollection, getAppendSummary, getCollections, removeTabFromCollection, renameCollection } from "../modules/storage.js";
 import { closeTabs, getCurrentWindowTabs, restoreCollection, restoreOneTab, serializeTabs } from "../modules/tabs.js";
 import { filterTabs, groupTabsByDomain, normalizeHostname } from "../modules/tab-selection.js";
 
-const state = { tabs: [], collections: [], searchQuery: "" };
+const state = { tabs: [], collections: [], searchQuery: "", collectionSearchQuery: "", destinationId: null, chooserOpener: null };
 const $ = (selector) => document.querySelector(selector);
 const openTabs = $("#open-tabs");
 const collectionsList = $("#collections-list");
@@ -149,6 +149,100 @@ async function onSave(event) {
   finally { button.disabled = false; }
 }
 
+function recentlyUpdatedCollections() {
+  return state.collections.slice().sort((first, second) => new Date(second.updatedAt || second.savedAt) - new Date(first.updatedAt || first.savedAt));
+}
+
+function renderCollectionChooser() {
+  const list = $("#collection-chooser-list");
+  const query = state.collectionSearchQuery.trim().toLowerCase();
+  const allCollections = recentlyUpdatedCollections();
+  const collections = allCollections.filter((collection) => collection.name.toLowerCase().includes(query));
+  list.replaceChildren();
+  $("#collection-chooser-loading").hidden = true;
+  $("#collection-chooser-error").hidden = true;
+  $("#collection-chooser-empty").hidden = allCollections.length !== 0;
+  $("#collection-chooser-no-results").hidden = allCollections.length === 0 || collections.length !== 0;
+  if (!collections.some((collection) => collection.id === state.destinationId)) state.destinationId = null;
+  collections.forEach((collection) => {
+    const choice = document.createElement("label");
+    choice.className = "collection-choice";
+    const radio = document.createElement("input");
+    radio.type = "radio";
+    radio.name = "destination-collection";
+    radio.value = collection.id;
+    radio.checked = collection.id === state.destinationId;
+    radio.setAttribute("aria-label", `Choose ${collection.name}`);
+    const name = document.createElement("span");
+    name.className = "choice-name";
+    name.textContent = collection.name;
+    const meta = document.createElement("span");
+    meta.className = "choice-meta";
+    meta.textContent = `${collection.tabs.length} tab${collection.tabs.length === 1 ? "" : "s"} · ${formatDate(collection.updatedAt || collection.savedAt)}`;
+    choice.append(radio, name, meta);
+    list.append(choice);
+  });
+  $("#add-dialog-confirm").disabled = !state.destinationId;
+}
+
+async function openAddToExistingChooser() {
+  const selected = state.tabs.filter((tab) => tab.selected);
+  if (!selected.length) return setStatus("Choose at least one tab to add.", true);
+  state.destinationId = null;
+  state.collectionSearchQuery = "";
+  state.chooserOpener = $("#add-existing-button");
+  $("#collection-search").value = "";
+  $("#add-dialog-summary").textContent = `${selected.length} selected tab${selected.length === 1 ? "" : "s"} will be added to the collection you choose.`;
+  $("#collection-chooser-loading").hidden = false;
+  $("#collection-chooser-list").replaceChildren();
+  $("#collection-chooser-empty").hidden = true;
+  $("#collection-chooser-no-results").hidden = true;
+  $("#collection-chooser-error").hidden = true;
+  const dialog = $("#add-dialog");
+  dialog.showModal();
+  try {
+    state.collections = await getCollections();
+    renderCollections();
+    renderCollectionChooser();
+    $("#collection-search").focus();
+  } catch (error) {
+    $("#collection-chooser-loading").hidden = true;
+    const chooserError = $("#collection-chooser-error");
+    chooserError.textContent = `Could not load collections: ${error.message}`;
+    chooserError.hidden = false;
+  }
+}
+
+function addConfirmationMessage(collection, selectedCount, summary) {
+  const duplicateDetail = summary.duplicates
+    ? ` ${summary.duplicates} tab${summary.duplicates === 1 ? " is" : "s are"} already in “${collection.name}” and will not be added.`
+    : " All selected tabs are new to this collection.";
+  return `${selectedCount} selected tab${selectedCount === 1 ? "" : "s"} will close after adding to “${collection.name}”.${duplicateDetail}`;
+}
+
+async function addToExistingCollection() {
+  const collection = state.collections.find((item) => item.id === state.destinationId);
+  const selected = state.tabs.filter((tab) => tab.selected);
+  if (!collection || !selected.length) return;
+  const savedTabs = serializeTabs(selected);
+  const preview = getAppendSummary(collection.tabs, savedTabs);
+  const closeAfterSave = $("#close-after-save").checked;
+  $("#add-dialog").close("add");
+  if (closeAfterSave && !(await confirmAction("Close selected tabs?", addConfirmationMessage(collection, selected.length, preview), "Add and close"))) return;
+  try {
+    const result = await appendTabsToCollection(collection.id, savedTabs);
+    if (closeAfterSave) await closeTabs(selected);
+    await refreshCollections();
+    if (!result.newTabs.length) {
+      setStatus(closeAfterSave ? `All selected tabs are already in “${collection.name}”. Selected tabs closed.` : `All selected tabs are already in “${collection.name}”.`);
+    } else {
+      const duplicateDetail = result.duplicates ? ` ${result.duplicates} were already in this collection.` : "";
+      setStatus(`Added ${result.newTabs.length} tab${result.newTabs.length === 1 ? "" : "s"} to “${collection.name}”.${duplicateDetail}${closeAfterSave ? " Selected tabs closed." : ""}`);
+    }
+    if (closeAfterSave) { state.tabs = await getCurrentWindowTabs(); renderOpenTabs(); }
+  } catch (error) { setStatus(`Could not add tabs: ${error.message}`, true); }
+}
+
 async function onRestoreAll(collection) {
   setStatus("Restoring collection…");
   const result = await restoreCollection(collection.tabs);
@@ -196,6 +290,25 @@ $("#tab-search").addEventListener("input", (event) => { state.searchQuery = even
 $("#select-all").addEventListener("click", () => { visibleTabs().forEach((tab) => { tab.selected = true; }); renderOpenTabs(); });
 $("#clear-selection").addEventListener("click", () => { state.tabs.forEach((tab) => { tab.selected = false; }); renderOpenTabs(); });
 $("#save-form").addEventListener("submit", onSave);
+$("#add-existing-button").addEventListener("click", openAddToExistingChooser);
+$("#collection-search").addEventListener("input", (event) => {
+  state.collectionSearchQuery = event.target.value;
+  renderCollectionChooser();
+});
+$("#collection-chooser-list").addEventListener("change", (event) => {
+  if (!event.target.matches('input[name="destination-collection"]')) return;
+  state.destinationId = event.target.value;
+  $("#add-dialog-confirm").disabled = false;
+});
+$("#add-to-existing-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  if (event.submitter?.value === "add") addToExistingCollection();
+  else $("#add-dialog").close("cancel");
+});
+$("#add-dialog").addEventListener("close", () => {
+  state.chooserOpener?.focus();
+  state.chooserOpener = null;
+});
 
 async function init() {
   try {

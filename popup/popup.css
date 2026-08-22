@@ -45,6 +45,8 @@ input[type="text"]:focus { border-color: #456bc9; outline: 2px solid #dce6ff; }
 .primary, .danger { background: #365fc3; border: 1px solid #365fc3; border-radius: 7px; color: #fff; font-weight: 700; padding: 9px 11px; }
 .primary:hover { background: #2d51aa; }
 .primary:disabled { cursor: wait; opacity: .6; }
+.secondary { background: #fff; border: 1px solid #bfc9da; border-radius: 7px; color: #365db9; font-weight: 700; padding: 9px 11px; }
+.secondary:hover { background: #f4f7ff; }
 .collections { margin-top: 20px; }
 .collection-card { margin-top: 9px; overflow: hidden; }
 .collection-header { align-items: flex-start; display: flex; gap: 7px; padding: 12px 12px 9px; }
@@ -65,6 +67,13 @@ dialog { border: 1px solid #dfe4ed; border-radius: 12px; box-shadow: 0 14px 40px
 dialog::backdrop { background: rgba(18, 29, 52, .3); }
 dialog h2 { font-size: 16px; }
 dialog p { color: #5e697b; font-size: 13px; line-height: 1.4; }
+.collection-chooser-list { display: grid; gap: 5px; margin-top: 10px; max-height: 190px; overflow: auto; }
+.collection-choice { align-items: center; border: 1px solid #e1e6ef; border-radius: 8px; cursor: pointer; display: flex; gap: 8px; padding: 8px; }
+.collection-choice:hover { background: #f5f7fb; }
+.collection-choice:has(input:focus-visible) { outline: 2px solid #dce6ff; }
+.choice-name { font-size: 12px; font-weight: 700; }
+.choice-meta { color: #798396; font-size: 11px; margin-left: auto; }
 .dialog-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
 .dialog-actions button:not(.danger) { background: #fff; border: 1px solid #cfd6e2; border-radius: 7px; padding: 7px 10px; }
+.dialog-actions .primary { background: #365fc3; border-color: #365fc3; color: #fff; }
 .dialog-actions .danger { background: #b63f43; border-color: #b63f43; padding: 7px 10px; }

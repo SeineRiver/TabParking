@@ -39,6 +39,7 @@
           <input id="collection-name" type="text" maxlength="80" placeholder="e.g. Weekend reading" required />
           <label class="check-row"><input id="close-after-save" type="checkbox" checked /> <span>Save and close selected tabs</span></label>
           <button class="primary" id="save-button" type="submit">Save selected tabs</button>
+          <button class="secondary" id="add-existing-button" type="button">Add to existing collection</button>
         </form>
       </section>
 
@@ -54,6 +55,20 @@
         <h2 id="dialog-title">Please confirm</h2>
         <p id="dialog-message"></p>
         <div class="dialog-actions"><button value="cancel">Cancel</button><button id="dialog-confirm" class="danger" value="confirm">Confirm</button></div>
+      </form>
+    </dialog>
+    <dialog id="add-dialog" aria-labelledby="add-dialog-title">
+      <form id="add-to-existing-form" method="dialog">
+        <h2 id="add-dialog-title">Add to existing collection</h2>
+        <p id="add-dialog-summary"></p>
+        <label class="search-label" for="collection-search">Search collections</label>
+        <input id="collection-search" type="search" placeholder="Search by collection name" autocomplete="off" />
+        <div id="collection-chooser-loading" class="loading">Loading collections…</div>
+        <p id="collection-chooser-error" class="empty" hidden></p>
+        <p id="collection-chooser-empty" class="empty" hidden>No collections yet. Save a new collection first.</p>
+        <div id="collection-chooser-no-results" class="empty" hidden>No matching collections.</div>
+        <div id="collection-chooser-list" class="collection-chooser-list" role="radiogroup" aria-label="Choose a collection"></div>
+        <div class="dialog-actions"><button id="add-dialog-cancel" value="cancel">Cancel</button><button id="add-dialog-confirm" class="primary" value="add" disabled>Add tabs</button></div>
       </form>
     </dialog>
     <template id="tab-item-template">

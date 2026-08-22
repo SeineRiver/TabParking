@@ -7,6 +7,12 @@
 - [ ] With a search active, verify domain groups show only matching tabs and **Select all** selects only those filtered tabs. Verify **Clear** clears selections across the full open-tab list.
 - [ ] Open a `chrome://` or other nonstandard URL. Verify it remains in the normal tab list with a non-standard URL label and does not appear in a domain group.
 - [ ] Select individual tabs, use **Select all** and **Clear**, then save a named collection. Verify its name, date, count, and tabs appear.
+- [ ] Verify **Save selected tabs** still creates a new collection as the primary action, including the existing save-and-close confirmation flow.
+- [ ] Select tabs and choose **Add to existing collection**. Verify the destination chooser opens with focus in its searchable collection list, collections are ordered by most recently saved or updated, and **Add tabs** stays disabled until a destination is selected.
+- [ ] Search the destination chooser by collection name, choose a result with keyboard controls, then add tabs. Verify the collection retains its existing tabs, receives new tabs at the end, updates its timestamp, and the popup reports success.
+- [ ] Add a mix of URLs already in the target and new URLs. Verify only new normalized URLs are added and the success message reports duplicates. Repeat with all duplicates and verify no duplicate storage entry is written.
+- [ ] With **Save and close selected tabs** checked, add to an existing collection. Verify confirmation names the collection, states the number of tabs to close, and describes known duplicates. Cancel and verify nothing changes; confirm and verify selected tabs close.
+- [ ] Open the chooser with no collections and verify its empty state. Press Escape or Cancel and verify it closes and returns focus to **Add to existing collection** without changing tabs or collections.
 - [ ] Check **Save and close selected tabs**. Verify the confirmation dialog appears; cancel once, then confirm and verify only selected tabs close after saving.
 - [ ] Restore a complete collection and verify a new window opens, with tabs in their saved order as Chrome permits and pinned tabs pinned.
 - [ ] Restore one saved tab and verify it opens in the current Chrome context.
